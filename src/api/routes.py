@@ -165,12 +165,6 @@ async def history(
         logger.error(f"Error listing message: {e}")
         raise HTTPException(status_code=500, detail=f"Error list message: {e}")
 
-    # Set the Server-Sent Events (SSE) response headers.
-    headers = {
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "Content-Type": "text/event-stream"
-    }
     logger.info(f"Starting streaming response for thread ID {thread_id}")
     response = JSONResponse(content=messages.as_dict())
 

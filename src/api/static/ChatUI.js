@@ -230,6 +230,9 @@ class ChatUI {
                     this.appendAssistantMessage(messageDiv, msg, false, message.content[0].text.annotations);
                 }
             }
+        } else {
+            var messageDiv = this.createAssistantMessageDiv();
+            this.appendAssistantMessage(messageDiv, "Error occurs while loading chat history!", false, []);
         }
     }
 }
