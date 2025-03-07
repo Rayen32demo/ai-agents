@@ -13,12 +13,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Str
 from fastapi.templating import Jinja2Templates
 
 from azure.ai.projects.aio import AIProjectClient
+from fastapi.responses import JSONResponse
 from azure.ai.projects.models import (
     Agent,
     MessageDeltaChunk,
     ThreadMessage,
     ThreadRun,
     AsyncAgentEventHandler,
+    OpenAIPageableListOfThreadMessage,
 )
 
 # Create a logger for this module
@@ -126,6 +128,50 @@ async def get_result(thread_id: str, agent_id: str, ai_client : AIProjectClient)
     except Exception as e:
         logger.exception(f"Exception in get_result: {e}")
         yield serialize_sse_event({'type': "error", 'message': str(e)})
+
+
+@router.get("/chat/history")
+async def history(
+    request: Request,
+    ai_client : AIProjectClient = Depends(get_ai_client),
+    agent : Agent = Depends(get_agent),
+):
+    # Retrieve the thread ID from the cookies (if available).
+    thread_id = request.cookies.get('thread_id')
+    agent_id = request.cookies.get('agent_id')
+
+    # Attempt to get an existing thread. If not found, create a new one.
+    try:
+        if thread_id and agent_id == agent.id:
+            logger.info(f"Retrieving thread with ID {thread_id}")
+            thread = await ai_client.agents.get_thread(thread_id)
+        else:
+            logger.info("Creating a new thread")
+            thread = await ai_client.agents.create_thread()
+    except Exception as e:
+        logger.error(f"Error handling thread: {e}")
+        raise HTTPException(status_code=400, detail=f"Error handling thread: {e}")
+
+    thread_id = thread.id
+    messages = OpenAIPageableListOfThreadMessage()
+
+    # Create a new message from the user's input.
+    try:
+        messages = await ai_client.agents.list_messages(
+            thread_id=thread_id,
+        )
+        logger.info(f"List message, thread ID: {thread_id}")
+    except Exception as e:
+        logger.error(f"Error listing message: {e}")
+        raise HTTPException(status_code=500, detail=f"Error list message: {e}")
+
+    logger.info(f"Starting streaming response for thread ID {thread_id}")
+    response = JSONResponse(content=messages.as_dict())
+
+    # Update cookies to persist the thread and agent IDs.
+    response.set_cookie("thread_id", thread_id)
+    response.set_cookie("agent_id", agent_id)
+    return response
 
 
 @router.post("/chat")
