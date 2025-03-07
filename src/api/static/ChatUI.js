@@ -207,6 +207,31 @@ class ChatUI {
             inputBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
     }
+
+    async loadChatHistory() {
+        var response = await fetch("/chat/history", {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include' 
+        });
+        
+        if (response.ok)    {
+            var json_response = await response.json();
+        
+            const reversedData = [...json_response.data].reverse();
+            for (let message of reversedData) {
+                var msg = message.content[0].text.value;
+                if (message.role === "user") {
+                    this.appendUserMessage(msg);
+                } else {
+                    var messageDiv = this.createAssistantMessageDiv();
+                    this.appendAssistantMessage(messageDiv, msg, false, message.content[0].text.annotations);
+                }
+            }
+        }
+    }
 }
 
 export default ChatUI;
