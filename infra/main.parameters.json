@@ -72,7 +72,7 @@
       "value": "${AZURE_AI_AGENT_DEPLOYMENT_SKU=GlobalStandard}"
     },
     "agentDeploymentCapacity": {
-      "value": "${AZURE_AI_AGENT_DEPLOYMENT_CAPACITY=50}"
+      "value": "${AZURE_AI_AGENT_DEPLOYMENT_CAPACITY=150}"
     },
     "embedDeploymentName": {
       "value": "${AZURE_AI_EMBED_DEPLOYMENT_NAME=text-embedding-ada-002}"
