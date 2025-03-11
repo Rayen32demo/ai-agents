@@ -50,15 +50,19 @@ git clone https://github.com/Azure-Samples/get-started-with-ai-agents.git
 ```
 At this point you could make changes to the code if required. However, no changes are needed to deploy and test the app as shown in the next step.
 
-#### Configure your Agent (optional)
+#### How to configure Agent model and version
 <!-- TODO where do we want this? probably after downloading the code -->
-If you want to personalize your agent, you can change the default configuration for your agent. Additional details on changing your agent can be found in [customizing model deployments](docs/deploy_customization.md#customizing-model-deployments). For more information on the Azure OpenAI models and non-Microsoft models that can be used in your deployment, view the [list of models supported by Azure AI Agent Service](https://learn.microsoft.com/azure/ai-services/agents/concepts/model-region-support).
+By default, the template uses model `gpt-4o-mini`, version `2024-07-18` for text generation and `text-embedding-3-small` version `1` for embeddings. If you want to personalize your agent, you can change the default configuration for your agent. Additional details on changing your agent can be found in [customizing model deployments](docs/deploy_customization.md#customizing-model-deployments). For more information on the Azure OpenAI models and non-Microsoft models that can be used in your deployment, view the [list of models supported by Azure AI Agent Service](https://learn.microsoft.com/azure/ai-services/agents/concepts/model-region-support).
 
 To specify the model (e.g. gpt-4o-mini, gpt-4o) that is deployed for the agent when `azd up` is called, set the following environment variables:
 ```shell
 azd env set AZURE_AI_AGENT_MODEL_NAME <MODEL_NAME>
 azd env set AZURE_AI_AGENT_MODEL_VERSION <MODEL_VERSION>
 ```
+
+#### How to configure Agent knowledge retrieval
+By default, the template deploys OpenAI's file search for agent's knowledge retrieval. An agent also can perform search using the search index, deployed in Azure AI Search resource. The semantic index search represents so-called hybrid search i.e. it uses LLM to search for the relevant context in the provided index as well as embedding similarity search. This index is built from the `embeddings.csv` file, containing the embeddings vectors, followed by the contexts.
+To use index search, please set the local environment variable `USE_AZURE_AI_SEARCH_SERVICE` to `true` during the `azd up` command. In this case the Azure AI Search resource will be deployed and used.
 
 #### Logging
 If you want to enable logging to a file, uncomment the following line in Dockerfile located in the src directory:

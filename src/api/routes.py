@@ -19,6 +19,7 @@ from azure.ai.projects.models import (
     ThreadMessage,
     ThreadRun,
     AsyncAgentEventHandler,
+    RunStep
 )
 
 # Create a logger for this module
@@ -64,11 +65,19 @@ class MyEventHandler(AsyncAgentEventHandler[str]):
 
             logger.info("MyEventHandler: Received completed message")
             annotations = []
+            # Get file annotations for the file search.
             for annotation in (a.as_dict() for a in message.file_citation_annotations):
                 file_id = annotation["file_citation"]["file_id"]
                 logger.info(f"Fetching file with ID for annotation {file_id}")
                 openai_file = await self.ai_client.agents.get_file(file_id)
                 annotation["file_name"] = openai_file.filename
+                logger.info(f"File name for annotation: {annotation['file_name']}")
+                annotations.append(annotation)
+
+            # Get url annotation for the index search.
+            for url_annotation in message.url_citation_annotations:
+                annotation = url_annotation.as_dict()
+                annotation["file_name"] = annotation['url_citation']['title']
                 logger.info(f"File name for annotation: {annotation['file_name']}")
                 annotations.append(annotation)
 
@@ -79,7 +88,7 @@ class MyEventHandler(AsyncAgentEventHandler[str]):
             }
             return serialize_sse_event(stream_data)
         except Exception as e:
-            logger.error("Error in event handler for thread message", exc_info=True)
+            logger.error(f"Error in event handler for thread message: {e}", exc_info=True)
             return None
 
     async def on_thread_run(self, run: ThreadRun) -> Optional[str]:
@@ -100,6 +109,19 @@ class MyEventHandler(AsyncAgentEventHandler[str]):
         stream_data = {'type': "stream_end"}
         return serialize_sse_event(stream_data)
 
+    async def on_run_step(self, step: RunStep) -> Optional[str]:
+        logger.info(f"Step {step['id']} status: {step['status']}")
+        step_details = step.get("step_details", {})
+        tool_calls = step_details.get("tool_calls", [])
+
+        if tool_calls:
+            logger.info("Tool calls:")
+            for call in tool_calls:
+                azure_ai_search_details = call.get("azure_ai_search", {})
+                if azure_ai_search_details:
+                    logger.info(f"azure_ai_search input: {azure_ai_search_details.get('input')}")
+                    logger.info(f"azure_ai_search output: {azure_ai_search_details.get('output')}")
+        return None
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -111,7 +133,7 @@ async def get_result(thread_id: str, agent_id: str, ai_client : AIProjectClient)
     try:
         async with await ai_client.agents.create_stream(
             thread_id=thread_id, 
-            assistant_id=agent_id,
+            agent_id=agent_id,
             event_handler=MyEventHandler(ai_client)
         ) as stream:
             logger.info("Successfully created stream; starting to process events")
