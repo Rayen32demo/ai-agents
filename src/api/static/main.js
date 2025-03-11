@@ -4,10 +4,11 @@
 import ChatUI from './ChatUI.js';
 import ChatClient from './ChatClient.js';
 
-function initChat() {
-    const chatUI = new ChatUI();
-    const chatClient = new ChatClient(chatUI);
+const chatUI = new ChatUI();
+const chatClient = new ChatClient(chatUI);
 
+function initChat() {
+ 
     const form = document.getElementById("chat-form");
     const messageInput = document.getElementById("message");
     const targetContainer = document.getElementById("messages");
@@ -31,3 +32,5 @@ function initChat() {
 }
 
 document.addEventListener("DOMContentLoaded", initChat);
+
+await chatUI.loadChatHistory();
